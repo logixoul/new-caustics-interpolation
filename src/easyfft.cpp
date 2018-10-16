@@ -6,9 +6,9 @@ public:
 	static fftwf_plan getPlan(ivec2 arrSize, int direction, int flags) {
 		Key key = { arrSize, direction };
 		if(cache.find(key) == cache.end()) {
-			Array2D<fftwf_complex> in(arrSize, nofill());
-			Array2D<fftwf_complex> out(arrSize, nofill());
-			auto plan = fftwf_plan_dft_2d(arrSize.y, arrSize.x, in.data, out.data, FFTW_FORWARD, flags);
+			Array2D<vec2> in(arrSize, nofill());
+			Array2D<vec2> out(arrSize, nofill());
+			auto plan = fftwf_plan_dft_2d(arrSize.y, arrSize.x, (fftwf_complex*)in.data, (fftwf_complex*)out.data, direction, flags);
 			cache[key] = plan;
 			return plan;
 		}
@@ -31,14 +31,14 @@ private:
 
 std::map<PlanCache::Key, fftwf_plan, PlanCache::KeyComparator> PlanCache::cache;
 
-Array2D<Complexf> fft(Array2D<float> in, int flags)
+Array2D<vec2> fft(Array2D<float> in, int flags)
 {
-	Array2D<Complexf> in_complex(in.Size());
+	Array2D<vec2> in_complex(in.Size());
 	forxy(in)
 	{
-		in_complex(p) = Complexf(in(p));
+		in_complex(p) = vec2(in(p), 0.0f);
 	}
-	Array2D<Complexf> result(in.Size());
+	Array2D<vec2> result(in.Size());
 	
 	auto plan = PlanCache::getPlan(in.Size(), FFTW_FORWARD, flags);
 	fftwf_execute_dft(plan, (fftwf_complex*)in_complex.data, (fftwf_complex*)result.data);
@@ -50,16 +50,16 @@ Array2D<Complexf> fft(Array2D<float> in, int flags)
 	return result;
 }
 
-Array2D<float> ifft(Array2D<Complexf> in, int flags)
+Array2D<float> ifft(Array2D<vec2> in, int flags)
 {
-	Array2D<Complexf> result(in.Size());
+	Array2D<vec2> result(in.Size());
 	auto plan = PlanCache::getPlan(in.Size(), FFTW_BACKWARD, flags);
 	fftwf_execute_dft(plan, (fftwf_complex*)in.data, (fftwf_complex*)result.data);
 
 	Array2D<float> out_real(in.Size());
 	forxy(in)
 	{
-		out_real(p) = result(p).real();
+		out_real(p) = result(p).x;
 	}
 	auto mul = 1.0f / sqrt((float)out_real.area);
 	forxy(out_real)
