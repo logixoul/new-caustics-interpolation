@@ -127,10 +127,10 @@ struct SApp : App {
 			"for(int i = 0; i < textureSize(tex2, 0).x; i++) {"
 			"	vec2 walkerPos = texelFetch(tex2, ivec2(i, 0), 0).xy;" // CORRECT?
 			"	float blurWidth = texelFetch(tex, ivec2(walkerPos), 0).x;"
-			"	blurWidth = blurWidth * blurWidth * 100 * 100 * 100 * 10;"
+			"	blurWidth = blurWidth * 100 * 10 * 3;"
 			"	float dist = distance(here, walkerPos) / imgWidth;"
 			//"	accum += 1.0 / (1.0 + dist * dist / blurWidth);" // todo: NORMALIZED KERNEL
-			"	accum += exp(-dist*dist/blurWidth);"
+			"	accum += exp(-dist*dist/(blurWidth*blurWidth));"
 			"}"
 			"_out = vec3(accum);"
 			, ShadeOpts().ifmt(GL_R32F)
