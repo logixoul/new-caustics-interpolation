@@ -2,7 +2,7 @@
 #include "easyfft.h"
 //#include "gpufft.h"
 
-inline Array2D<vec2> getInvKernelf(ivec2 size, function<float(float)> func)
+inline Array2D<vec2> getKernelf(ivec2 size, function<float(float)> func, bool normalize = false)
 {
 	Array2D<float> kernel(size, 0);
 	auto center = size / 2;
@@ -12,9 +12,15 @@ inline Array2D<vec2> getInvKernelf(ivec2 size, function<float(float)> func)
 		if (p2.y >= center.y) p2.y -= size.y;
 		auto dist = length(vec2(p2));
 		if (dist == 0.0f)
-			kernel(p) = func(0.5);
-		else
-			kernel(p) = 1.0 / sq(dist);
+			dist = 0.1f;
+		kernel(p) = func(dist);
+	}
+	if (normalize) {
+		float sum = std::accumulate(kernel.begin(), kernel.end(), 0.0f);
+		cout << "sum=" << sum << endl;
+		forxy(kernel) {
+			kernel(p) /= sum;
+		}
 	}
 	return fft(kernel, FFTW_MEASURE);
 }

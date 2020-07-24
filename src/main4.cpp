@@ -42,8 +42,8 @@ struct Walker {
 		if (pos.y < 0) pos.y += sy - 1;*/
 		//vec2 displacement;
 		float nscale = 10 / (float)sx; // both for x and y so we preserve aspect ratio
-		displacement.x = raw_noise_4d(pos.x * nscale, pos.y * nscale, noiseTimeDim, 0.0) * 30.0f;
-		displacement.y = raw_noise_4d(pos.x * nscale, pos.y * nscale, noiseTimeDim, 1.0) * 30.0f;
+		displacement.x = raw_noise_4d(pos.x * nscale, pos.y * nscale, noiseTimeDim, 0.0) * 40.0f;
+		displacement.y = raw_noise_4d(pos.x * nscale, pos.y * nscale, noiseTimeDim, 1.0) * 40.0f;
 	}
 };
 
@@ -81,6 +81,15 @@ struct SApp : App {
 	}
 
 	void stefanUpdate() {
+		float exponent = cfg1::getOpt("exponent", 2,
+			[&]() { return keys['e']; }, [&]() { return constrain<float>(mouseY, 0.0f, 1.0f) * 5; }
+		);
+
+		if (pause) {
+			std::this_thread::sleep_for(50ms);
+			return;
+		}
+
 		noiseTimeDim += .008f;
 		for (auto& walker: walkers) {
 			walker.update();
@@ -88,35 +97,35 @@ struct SApp : App {
 
 		Array2D<float> img(sx, sy, 0);
 		for (auto& walker : walkers) {
-			img.wr(walker.pos + walker.displacement) += 1.0f;
+			//img.wr(walker.pos + walker.displacement) = 1.0f;
+			aaPoint(img, walker.pos + walker.displacement, .1f);
 		}
 
-		static auto invKernelf = getInvKernelf(img.Size(), [](float f) { return 1.0f / sq(f);  });
-		static auto longTailKernelf = getInvKernelf(img.Size(), [](float f) { return 1.0f / (1 + f);  });
+		auto invKernelf = getKernelf(img.Size(),
+			[&](float f) { return 1.0f / pow(f, exponent); });
+			//[&](float f) { return exp(-f * exponent); });
+			//[&](float f) { return 1.0f / (1 + sq(f / 4.0f)); });
+		auto longTailKernelf = getKernelf(img.Size(),
+			[&](float f) { return 1.0f / (1 + sq(f/4.0f)); },
+			true);
 
-		auto convolved = convolveFft(img, longTailKernelf);
+		auto convolvedLong = convolveFft(img, longTailKernelf);
+		auto convolvedForInterp = convolveFft(img, invKernelf);
 
-		auto punctured = convolved.clone();
-		int count = 0;
+		auto punctured = convolvedLong.clone();
 		forxy(punctured) {
 			punctured(p) *= img(p);
-			if (punctured(p) > 0 && punctured(p) < 1)
-				count++;
 		}
-		cout << "count = " << count << endl;
 
 		auto puncturedConvolved = convolveFft(punctured, invKernelf);
 
 		auto puncturedInterpolated = puncturedConvolved.clone();
 
 		forxy(puncturedInterpolated) {
-			puncturedInterpolated(p) /= convolved(p);
+			puncturedInterpolated(p) /= convolvedForInterp(p);
 		}
 
 		tex = gtex(puncturedInterpolated);
-
-		if(pause)
-			std::this_thread::sleep_for(50ms);
 	}
 	void stefanDraw() {
 		//static auto tex = maketex(sx, sy, GL_R16F);
@@ -129,10 +138,11 @@ struct SApp : App {
 		}
 		gl::end();*/
 		auto tex2 = shade2(tex,
-			"float f = fetch1() * 100.0f;"
+			"float f = fetch1() * 15000 * 3;"
 			//"_out.r = f / (f + 1.0f);");
-			"f = smoothstep(0, 1, f);"
-			"f = smoothstep(0, 1, f);"
+			//"for(int i = 0; i < 10; i++) f = smoothstep(0, 1, f);"
+			//"float fw = fwidth(f);"
+			//"f = smoothstep(0.6 - fw/2, .6 + fw/2, f);"
 			"_out.r = f;");
 		gl::clear();
 		gl::setMatricesWindow(getWindowSize(), false);

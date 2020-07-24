@@ -127,7 +127,6 @@
     <ClCompile Include="colorspaces.cpp" />
     <ClCompile Include="easyfft.cpp" />
     <ClCompile Include="gpuBlur2_4.cpp" />
-    <ClCompile Include="hdrwrite.cpp" />
     <ClCompile Include="stefanfw.cpp" />
     <ClCompile Include="main4.cpp" />
     <ClCompile Include="qdebug.cpp" />
@@ -149,7 +148,6 @@
     <ClInclude Include="easyfft.h" />
     <ClInclude Include="gpgpu.h" />
     <ClInclude Include="gpuBlur2_4.h" />
-    <ClInclude Include="hdrwrite.h" />
     <ClInclude Include="convolve_fft.h" />
     <ClInclude Include="stefanfw.h" />
     <ClInclude Include="qdebug.h" />
