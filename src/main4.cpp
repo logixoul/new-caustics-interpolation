@@ -106,7 +106,7 @@ struct SApp : App {
 			//[&](float f) { return exp(-f * exponent); });
 			//[&](float f) { return 1.0f / (1 + sq(f / 4.0f)); });
 		auto longTailKernelf = getKernelf(img.Size(),
-			[&](float f) { return 1.0f / (1 + sq(f/4.0f)); },
+			[&](float f) { return 1.0f / (1 + f * f / 16); },
 			true);
 
 		auto convolvedLong = convolveFft(img, longTailKernelf);
@@ -127,16 +127,17 @@ struct SApp : App {
 			"for(int i = 0; i < textureSize(tex2, 0).x; i++) {"
 			"	vec2 walkerPos = texelFetch(tex2, ivec2(i, 0), 0).xy;" // CORRECT?
 			"	float blurWidth = texelFetch(tex, ivec2(walkerPos), 0).x;"
-			"	blurWidth = blurWidth * 100 * 10 * 3;"
-			"	float dist = distance(here, walkerPos) / imgWidth;"
-			//"	accum += 1.0 / (1.0 + dist * dist / blurWidth);" // todo: NORMALIZED KERNEL
-			"	accum += exp(-dist*dist/(blurWidth*blurWidth));"
+			"	float blurWidthBak = blurWidth;"
+			"	blurWidth = blurWidth *mouse.y* 100000;"
+			"	float dist = distance(here, walkerPos);"
+			//"	accum += 1.0 / (1.0 + dist * dist *(blurWidth*blurWidth)) * blurWidthBak;" // todo: NORMALIZED KERNEL
+			"	accum += exp(-dist*dist*(blurWidth*blurWidth)) * blurWidthBak;"
 			"}"
 			"_out = vec3(accum);"
 			, ShadeOpts().ifmt(GL_R32F)
 		);
 		auto texDld = gettexdata<float>(tex, GL_RED, GL_FLOAT);
-		//::mm(texDld, "texDld");
+		::mm(texDld, "texDld");
 		texDld = ::to01(texDld);
 		tex = gtex(texDld);
 	}
