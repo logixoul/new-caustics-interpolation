@@ -110,22 +110,35 @@ struct SApp : App {
 			true);
 
 		auto convolvedLong = convolveFft(img, longTailKernelf);
-		auto convolvedForInterp = convolveFft(img, invKernelf);
+		auto convolvedLongTex = gtex(convolvedLong);
 
-		auto punctured = convolvedLong.clone();
-		forxy(punctured) {
-			punctured(p) *= img(p);
+		Array2D<vec2> sparseInfoArr(walkers.size(), 1, vec2());
+		int i = 0;
+		for (auto& walker : walkers) {
+			sparseInfoArr(i, 0) = walker.pos;
+			i++;
 		}
 
-		auto puncturedConvolved = convolveFft(punctured, invKernelf);
-
-		auto puncturedInterpolated = puncturedConvolved.clone();
-
-		forxy(puncturedInterpolated) {
-			puncturedInterpolated(p) /= convolvedForInterp(p);
-		}
-
-		tex = gtex(puncturedInterpolated);
+		auto sparseInfoTex = gtex(sparseInfoArr);
+		globaldict["imgWidth"] = img.w;
+		tex = shade2(convolvedLongTex, sparseInfoTex,
+			"float accum = 0.0;"
+			"vec2 here = gl_FragCoord.xy;"
+			"for(int i = 0; i < textureSize(tex2, 0).x; i++) {"
+			"	vec2 walkerPos = texelFetch(tex2, ivec2(i, 0), 0).xy;" // CORRECT?
+			"	float blurWidth = texelFetch(tex, ivec2(walkerPos), 0).x;"
+			"	blurWidth = blurWidth * blurWidth * 100 * 100 * 100 * 10;"
+			"	float dist = distance(here, walkerPos) / imgWidth;"
+			//"	accum += 1.0 / (1.0 + dist * dist / blurWidth);" // todo: NORMALIZED KERNEL
+			"	accum += exp(-dist*dist/blurWidth);"
+			"}"
+			"_out = vec3(accum);"
+			, ShadeOpts().ifmt(GL_R32F)
+		);
+		auto texDld = gettexdata<float>(tex, GL_RED, GL_FLOAT);
+		//::mm(texDld, "texDld");
+		texDld = ::to01(texDld);
+		tex = gtex(texDld);
 	}
 	void stefanDraw() {
 		//static auto tex = maketex(sx, sy, GL_R16F);
@@ -138,7 +151,7 @@ struct SApp : App {
 		}
 		gl::end();*/
 		auto tex2 = shade2(tex,
-			"float f = fetch1() * 15000 * 3;"
+			"float f = fetch1();"
 			//"_out.r = f / (f + 1.0f);");
 			//"for(int i = 0; i < 10; i++) f = smoothstep(0, 1, f);"
 			//"float fw = fwidth(f);"

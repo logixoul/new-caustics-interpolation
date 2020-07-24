@@ -3,7 +3,7 @@
 #include "util.h"
 #include "qdebug.h"
 
-const GLenum hdrFormat = GL_RGBA16F;
+const GLenum hdrFormat = GL_RGBA32F;
 
 template<class F>
 struct Transformed {
@@ -696,7 +696,7 @@ inline gl::TextureRef maketex(int w, int h, GLint internalFormat) {
 
 template<class T>
 Array2D<T> gettexdata(gl::TextureRef tex, GLenum format, GLenum type) {
-	return gettexdata<T>(tex, format, type, tex.getBounds());
+	return gettexdata<T>(tex, format, type, tex->getBounds());
 }
 
 inline void checkGLError(string place)
@@ -717,7 +717,7 @@ inline void checkGLError(string place)
 template<class T>
 Array2D<T> gettexdata(gl::TextureRef tex, GLenum format, GLenum type, ci::Area area) {
 	Array2D<T> data(area.getWidth(), area.getHeight());
-	tex.bind();
+	tex->bind();
 	//glGetTexImage(GL_TEXTURE_2D, 0, format, type, data.data);
 	beginRTT(tex);
 	glReadPixels(area.x1, area.y1, area.getWidth(), area.getHeight(), format, type, data.data);
